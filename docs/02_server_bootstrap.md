@@ -275,112 +275,147 @@ ls -la /srv/data/
 
 ## Step S5: Backup Storage
 
-### 5.1 Подготовить внешний диск
+Выберите один из трёх вариантов бэкапа:
 
-**ВАЖНО**: Используйте отдельный диск для бэкапов!
+1. **Только внешний диск** — быстро, надёжно
+2. **Только Яндекс Диск** — защита от потери сервера
+3. **Гибридный** — внешний диск + Яндекс Диск одновременно
+
+---
+
+### Вариант 1: Внешний диск
+
+Подключите внешний диск к серверу.
 
 ```bash
 # Найти диск
 sudo lsblk
-# или
-sudo fdisk -l
-```
 
-Предположим, диск это `/dev/sdb`.
-
-### 5.2 Разметить диск (если нужно)
-
-```bash
-# Создать раздел на диске (ОСТОРОЖНО!)
-sudo fdisk /dev/sdb
-
-# Команды в fdisk:
-# g   — создать новую GPT таблицу разделов
-# n   — создать новый раздел (принять дефолты)
-# w   — записать изменения
-
-# Создать файловую систему
+# Создать файловую систему (замените /dev/sdb на ваш диск)
 sudo mkfs.ext4 /dev/sdb1
-```
 
-### 5.3 Смонтировать диск
-
-```bash
 # Создать точку монтирования
 sudo mkdir -p /mnt/backup
 
-# Временно смонтировать
+# Смонтировать
 sudo mount /dev/sdb1 /mnt/backup
 
-# Проверить
-df -h | grep backup
+# Добавить в fstab для автозагрузки
+UUID=$(sudo blkid -s UUID -o value /dev/sdb1)
+echo "UUID=$UUID /mnt/backup ext4 defaults 0 2" | sudo tee -a /etc/fstab
 ```
 
-### 5.4 Настроить автозагрузку (fstab)
-
-```bash
-# Найти UUID диска
-sudo blkid /dev/sdb1
-
-# Вывод будет примерно: UUID="1234-5678-90ab" ...
-
-# Добавить в /etc/fstab
-echo "UUID=ВАШ_UUID /mnt/backup ext4 defaults 0 2" | sudo tee -a /etc/fstab
-
-# Проверить монтирование без перезагрузки
-sudo umount /mnt/backup
-sudo mount -a
-
-# Проверить
-df -h | grep backup
-```
-
-### 5.5 Установить Restic
+Установить Restic и инициализировать репозиторий:
 
 ```bash
 sudo apt install restic
 
-# Проверить
-restic version
-```
-
-### 5.6 Инициализировать Restic репозиторий
-
-```bash
 cd /srv/homelab/homelab-server
 
-# Загрузить переменные из .env
+# Настроить .env
+nano compose/.env
+```
+
+Добавьте в `compose/.env`:
+```bash
+RESTIC_REPO_LOCAL=/mnt/backup/restic
+RESTIC_REPO_CLOUD=
+RESTIC_PASSWORD=ваш_пароль
+```
+
+Инициализировать репозиторий:
+```bash
 source compose/.env
 
-# Проверить переменные
-echo "RESTIC_REPO: $RESTIC_REPO"
-echo "RESTIC_PASSWORD: [HIDDEN]"
-
-# Создать директорию для бэкапов
-sudo mkdir -p $RESTIC_REPO
-sudo chown $USER:$USER $RESTIC_REPO
-
-# Инициализировать restic репозиторий
+# Создать и инициализировать репозиторий
+sudo mkdir -p $RESTIC_REPO_LOCAL
+sudo chown $USER:$USER $RESTIC_REPO_LOCAL
+export RESTIC_REPO=$RESTIC_REPO_LOCAL
 restic init
+
+# Проверить бэкап
+./scripts/backup.sh local
 ```
 
-Ожидаемый вывод:
-```
-created restic repository <ID> at ...
+---
 
-Please note that knowledge of your password is required to access
-the repository. Losing your password means that your data is
-irrecoverably lost.
-```
-
-### 5.7 Проверить бэкап
+### Вариант 2: Яндекс Диск
 
 ```bash
-# Запустить тестовый бэкап
-./scripts/backup.sh
+# Установить пакеты
+sudo apt install davfs2 restic
+
+# Создать точку монтирования
+sudo mkdir -p /mnt/yandex-disk
+sudo usermod -aG davfs2 $USER
+
+# Сохранить креденшиалы (замените на свои)
+mkdir -p ~/.davfs2
+echo "https://webdav.yandex.ru ВАШ_EMAIL ВАШ_ПАРОЛЬ" > ~/.davfs2/secrets
+chmod 600 ~/.davfs2/secrets
+
+# Добавить в fstab
+echo "https://webdav.yandex.ru /mnt/yandex-disk davfs user 0 0" | sudo tee -a /etc/fstab
+
+# Смонтировать
+sudo mount /mnt/yandex-disk
+mkdir -p /mnt/yandex-disk/homelab-backups
+```
+
+Настроить `compose/.env`:
+```bash
+nano compose/.env
+```
+
+Добавьте:
+```bash
+RESTIC_REPO_LOCAL=
+RESTIC_REPO_CLOUD=/mnt/yandex-disk/homelab-backups
+RESTIC_PASSWORD=ваш_пароль
+```
+
+Инициализировать репозиторий:
+```bash
+source compose/.env
+
+export RESTIC_REPO=$RESTIC_REPO_CLOUD
+restic init
+
+# Проверить бэкап
+./scripts/backup.sh cloud
+```
+
+---
+
+### Вариант 3: Гибридный (диск + Яндекс Диск)
+
+Сначала выполните Вариант 1 и Вариант 2. Затем настройте `compose/.env`:
+
+```bash
+nano compose/.env
+```
+
+Добавьте оба пути:
+```bash
+RESTIC_REPO_LOCAL=/mnt/backup/restic
+RESTIC_REPO_CLOUD=/mnt/yandex-disk/homelab-backups
+RESTIC_PASSWORD=ваш_пароль
+```
+
+Проверить оба бэкапа:
+```bash
+# Локальный бэкап
+./scripts/backup.sh local
+
+# Облачный бэкап
+./scripts/backup.sh cloud
 
 # Проверить снапшоты
-restic snapshots
+export RESTIC_REPO=/mnt/backup/restic
+restic snapshots --compact
+
+export RESTIC_REPO=/mnt/yandex-disk/homelab-backups
+restic snapshots --compact
 ```
 
 ---
@@ -473,54 +508,60 @@ sudo netplan apply
 
 ---
 
-## Step S7: Systemd Backup Setup
+## Step S7: Автоматизация бэкапов
 
-### 7.1 Копировать unit файлы
+### Вариант 1: Только внешний диск
 
 ```bash
 cd /srv/homelab/homelab-server
 
-# Копировать unit файлы в systemd
-sudo cp systemd/homelab-backup.{service,timer} /etc/systemd/system/
-sudo cp systemd/homelab-restore-test.service /etc/systemd/system/
-```
-
-### 7.2 Перезагрузить systemd
-
-```bash
+# Скопировать и включить
+sudo cp systemd/homelab-backup-local.{service,timer} /etc/systemd/system/
 sudo systemctl daemon-reload
-```
+sudo systemctl enable --now homelab-backup-local.timer
 
-### 7.3 Включить timer
-
-```bash
-# Включить автоматический бэкап
-sudo systemctl enable homelab-backup.timer
-
-# Запустить timer
-sudo systemctl start homelab-backup.timer
-
-# Проверить статус
-sudo systemctl status homelab-backup.timer
-```
-
-### 7.4 Проверить следующее выполнение
-
-```bash
+# Проверить
 systemctl list-timers | grep homelab
 ```
 
-### 7.5 Тестовый бэкап (опционально)
+### Вариант 2: Только Яндекс Диск
 
 ```bash
-# Запустить бэкап вручную
-sudo systemctl start homelab-backup.service
+cd /srv/homelab/homelab-server
 
-# Проверить логи
-journalctl -u homelab-backup.service -f
+# Скопировать и включить
+sudo cp systemd/homelab-backup-cloud.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now homelab-backup-cloud.timer
 
-# Проверить снапшоты
-restic snapshots
+# Проверить
+systemctl list-timers | grep homelab
+```
+
+### Вариант 3: Гибридный (диск + Яндекс Диск)
+
+```bash
+cd /srv/homelab/homelab-server
+
+# Скопировать все unit файлы
+sudo cp systemd/homelab-backup-local.{service,timer} /etc/systemd/system/
+sudo cp systemd/homelab-backup-cloud.{service,timer} /etc/systemd/system/
+sudo cp systemd/homelab-restore-test.service /etc/systemd/system/
+
+# Перезагрузить и включить оба timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now homelab-backup-local.timer
+sudo systemctl enable --now homelab-backup-cloud.timer
+
+# Проверить расписание
+systemctl list-timers | grep homelab
+```
+
+Ожидаемый вывод:
+```
+NEXT                                LEFT          LAST    PASSED    UNIT                        ...
+Sun 2025-01-19 03:00:00 MSK  14h left      -      -         homelab-backup-local.timer  ...
+Sun 2025-01-19 04:00:00 MSK  15h left      -      -         homelab-backup-cloud.timer  ...
 ```
 
 ---

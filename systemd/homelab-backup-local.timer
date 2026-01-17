@@ -1,7 +1,7 @@
 [Unit]
-Description=Homelab Backup Timer
+Description=Homelab Local Backup Timer
 Documentation=https://github.com/vaultwarden/server
-Requires=homelab-backup.service
+Requires=homelab-backup-local.service
 
 [Timer]
 # Run daily at 03:00

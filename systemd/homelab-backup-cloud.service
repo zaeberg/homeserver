@@ -1,15 +1,15 @@
 [Unit]
-Description=Homelab Backup Service
+Description=Homelab Cloud Backup Service (Yandex Disk)
 Documentation=https://github.com/vaultwarden/server
 After=network.target docker.service
-Requires=docker.service
+Requires=network-online.target
 
 [Service]
 Type=oneshot
 User=root
 WorkingDirectory=/srv/homelab/homelab-server
-ExecStart=/srv/homelab/homelab-server/scripts/backup.sh
-Nice=10
+ExecStart=/srv/homelab/homelab-server/scripts/backup.sh cloud
+Nice=15
 IOSchedulingClass=idle
 IOSchedulingPriority=7
 

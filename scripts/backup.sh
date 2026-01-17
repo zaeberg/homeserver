@@ -3,6 +3,7 @@ set -e
 
 # Script: backup.sh
 # Description: Backup homelab data using Restic
+# Usage: ./scripts/backup.sh [local|cloud]
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
@@ -39,15 +40,47 @@ log() {
 	echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a /srv/data/backup/backup.log
 }
 
-echo "=== Homelab Backup ==="
+# Determine which repository to use
+BACKUP_TYPE="${1:-}"
+
+if [ -n "$BACKUP_TYPE" ]; then
+	# New behavior: explicit type specified
+	case "$BACKUP_TYPE" in
+		local)
+			REPO_TYPE="Local"
+			RESTIC_REPO="$RESTIC_REPO_LOCAL"
+			;;
+		cloud)
+			REPO_TYPE="Cloud"
+			RESTIC_REPO="$RESTIC_REPO_CLOUD"
+			;;
+		*)
+			error "Invalid backup type: $BACKUP_TYPE. Use 'local' or 'cloud'"
+			exit 1
+			;;
+	esac
+
+	# Check if repository is configured
+	if [ -z "$RESTIC_REPO" ]; then
+		error "RESTIC_REPO_${BACKUP_TYPE^^} is not set in compose/.env"
+		error "Edit compose/.env and set RESTIC_REPO_${BACKUP_TYPE^^}"
+		exit 1
+	fi
+else
+	# Legacy behavior: use RESTIC_REPO for backward compatibility
+	if [ -z "$RESTIC_REPO" ]; then
+		error "RESTIC_REPO not set in compose/.env"
+		error "Set RESTIC_REPO_LOCAL or RESTIC_REPO_CLOUD in compose/.env"
+		exit 1
+	fi
+	REPO_TYPE="Default"
+fi
+
+echo "=== Homelab Backup (${REPO_TYPE}) ==="
+echo "Repository: $RESTIC_REPO"
 echo ""
 
 # Check required variables
-if [ -z "$RESTIC_REPO" ]; then
-	error "RESTIC_REPO not set in compose/.env"
-	exit 1
-fi
-
 if [ -z "$RESTIC_PASSWORD" ]; then
 	error "RESTIC_PASSWORD not set in compose/.env"
 	exit 1
@@ -57,7 +90,7 @@ fi
 sudo mkdir -p /srv/data/backup
 sudo chown $USER:$USER /srv/data/backup
 
-log "Starting backup"
+log "Starting ${REPO_TYPE,,} backup to: $RESTIC_REPO"
 
 # Set default retention policy if not specified
 RETENTION="${RESTIC_RETENTION:---keep-daily 7 --keep-weekly 4 --keep-monthly 6}"

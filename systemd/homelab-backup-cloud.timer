@@ -1,0 +1,12 @@
+[Unit]
+Description=Homelab Cloud Backup Timer
+Documentation=https://github.com/vaultwarden/server
+Requires=homelab-backup-cloud.service
+
+[Timer]
+# Run weekly on Sunday at 04:00
+OnCalendar=Sun *-*-* 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
