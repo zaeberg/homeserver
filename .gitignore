@@ -1,0 +1,44 @@
+# Environment files (secrets)
+compose/.env
+.env
+*.env
+
+# Data directories
+**/data/
+data/
+
+# Database files
+**/*.sqlite
+**/*.sqlite*
+**/*.db
+*.sqlite
+*.sqlite*
+*.db
+
+# Backup files
+**/backups/
+backups/
+
+# Log files
+**/*.log
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Restic cache (if running locally)
+.restic/
+.cache/

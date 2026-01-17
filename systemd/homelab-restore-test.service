@@ -1,0 +1,18 @@
+[Unit]
+Description=Homelab Restore Test Service
+Documentation=https://github.com/vaultwarden/server
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/srv/homelab/homelab-server
+ExecStart=/srv/homelab/homelab-server/scripts/restore_test.sh
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

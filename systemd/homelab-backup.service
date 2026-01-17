@@ -1,0 +1,21 @@
+[Unit]
+Description=Homelab Backup Service
+Documentation=https://github.com/vaultwarden/server
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/srv/homelab/homelab-server
+ExecStart=/srv/homelab/homelab-server/scripts/backup.sh
+Nice=10
+IOSchedulingClass=idle
+IOSchedulingPriority=7
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
