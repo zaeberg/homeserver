@@ -21,11 +21,26 @@ services:
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wjC"  # test:test
+      - "avahi.homeserver.service=Traefik Dashboard"
+      - "avahi.homeserver.protocol=http"
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  traefik-avahi:
+    image: ghcr.io/hardillb/traefik-avahi-helper:latest
+    container_name: homelab-traefik-avahi
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
+    networks:
+      - internal
+    environment:
+      - HOSTNAME=home
+      - DOMAIN=.local
 
 networks:
   internal:
