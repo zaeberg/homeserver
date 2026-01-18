@@ -9,7 +9,16 @@ http:
       service: "api@internal"
       entryPoints:
         - "web"
+      middlewares:
+        - "dashboard-replacepath"
+
   middlewares:
+    # Переписывает путь / на /dashboard/ прозрачно (без редиректа)
+    dashboard-replacepath:
+      replacePathRegex:
+        regex: "^/$"
+        replacement: "/dashboard/"
+
     # Middleware для добавления общих заголовков безопасности
     security-headers:
       headers:
