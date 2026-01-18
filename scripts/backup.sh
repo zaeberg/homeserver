@@ -13,6 +13,8 @@ if [ -f "compose/.env" ]; then
 	set -a
 	source compose/.env
 	set +a
+	# Export RESTIC_PASSWORD explicitly for restic commands
+	export RESTIC_PASSWORD
 else
 	echo "Error: compose/.env not found"
 	exit 1
@@ -86,9 +88,24 @@ if [ -z "$RESTIC_PASSWORD" ]; then
 	exit 1
 fi
 
+# For rclone backend: ensure rclone can find its config
+if [[ "$RESTIC_REPO" == rclone:* ]]; then
+	# Set RCLONE_CONFIG explicitly if not set
+	if [ -z "$RCLONE_CONFIG" ]; then
+		export RCLONE_CONFIG="$HOME/.config/rclone/rclone.conf"
+	fi
+	# Verify config exists
+	if [ ! -f "$RCLONE_CONFIG" ]; then
+		error "Rclone config not found at: $RCLONE_CONFIG"
+		error "Run: rclone config"
+		exit 1
+	fi
+	log "Using rclone config: $RCLONE_CONFIG"
+fi
+
 # Create backup directory if it doesn't exist
-sudo mkdir -p /srv/data/backup
-sudo chown $USER:$USER /srv/data/backup
+mkdir -p /srv/data/backup 2>/dev/null || sudo mkdir -p /srv/data/backup
+sudo chown $USER:$USER /srv/data/backup 2>/dev/null || true
 
 log "Starting ${REPO_TYPE,,} backup to: $RESTIC_REPO"
 
