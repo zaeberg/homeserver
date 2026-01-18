@@ -45,16 +45,23 @@ sudo mkdir -p /srv/data/{traefik,backup}
 ./scripts/validate.sh
 ```
 
+## Разработка
+
+Для внесения изменений см. [`DEVELOPMENT.md`](DEVELOPMENT.md) — workflow, code style, testing.
+
 ## Документация
 
 Подробная документация находится в директории `docs/`:
 
+- `00_architecture.md` — архитектура системы и компоненты
 - `01_repo_overview.md` — обзор репозитория
 - `02_server_bootstrap.md` — bootstrap ОС на miniPC
 - `03_deploy.md` — деплой на сервер
 - `04_backup_restore.md` — бэкап и восстановление
 - `05_operations.md` — операции обслуживания
 - `06_troubleshooting.md` — решение проблем
+- `07_adding_services.md` — добавление новых сервисов
+- `08_security.md` — security guidelines
 
 ## Безопасность
 

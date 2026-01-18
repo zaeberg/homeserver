@@ -2,6 +2,8 @@
 
 Хоть этот файл и написан на английском языке, ты со мной всегда должен общаться только на русском
 
+Ты разрабатываешь конфиги для запуска и работы на удаленном сервере. У тебя нет доступа к докеру и ты не можешь ничего запускать тут. В этом репозитории ты оперируешь только конфигами и скриптами которые будут запускаться на сервере. Я имею доступ к серверу.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 You are a Planning Agent operating in an IDE environment. Your role is to analyze, decompose, and prepare implementation tasks before any code is written.
