@@ -31,11 +31,12 @@
   A: Только ссылка на Traefik. Минимальная конфигурация без виджетов.
 
 ## Edge Cases & Considerations
-- [ ] Порт 3000 уже занят → Traefik маршрутизирует внутренний порт, так что конфликтов не будет
+- [x] Порт 3000 уже занят → Traefik маршрутизирует внутренний порт, так что конфликтов не будет
 - [ ] Проблемы с правами на docker socket → Можно убрать volume с docker.sock, так как он не обязателен для базовой работы
 - [ ] mDNS не публикует сервис → Нужно проверить что avahi-daemon установлен на хосте
 - [ ] Конфигурационные файлы не созданы → Нужно создать директорию и базовые файлы bookmarks.yaml, settings.yaml
 - [ ] Конфликт с Traefik dashboard на traefik.home.local → Конфликта нет, это разные сервисы на разных хостах
+- [x] **[ОБНАРУЖЕНО] Homepage требует HOMEPAGE_ALLOWED_HOSTS** → Добавлена environment variable в compose.yml (home.local)
 
 ## Relevant Context
 - `compose/compose.yml:27-85` - Текущая конфигурация Traefik с labels для routing
@@ -118,6 +119,7 @@
 
 **Выполнено:**
 - ✓ Контейнер Homepage добавлен в `compose/compose.yml`
+- ✓ Добавлена environment variable `HOMEPAGE_ALLOWED_HOSTS=home.local` (исправлен баг с валидацией хоста)
 - ✓ Созданы пример конфигов в `infra/homepage/config-examples/`:
   - `bookmarks.yaml` — с закладкой на Traefik
   - `services.yaml` — пустой, с примерами
@@ -126,6 +128,14 @@
   - `docker.yaml` — для будущей Docker интеграции
 - ✓ Создана документация `infra/homepage/README.md` и `DEPLOY.md`
 - ✓ Все YAML файлы и compose конфиг валидны
+
+**[DISCOVERED] Баг с валидацией хоста:**
+- Homepage требует явного указания разрешённых хостов через `HOMEPAGE_ALLOWED_HOSTS`
+- Добавлена environment variable в compose.yml
+- Если нужны дополнительные хосты (например, IP адрес), добавить их через запятую:
+  ```
+  HOMEPAGE_ALLOWED_HOSTS=home.local,192.168.1.100,homelab.local
+  ```
 
 **Требуется выполнение на сервере:**
 1. `git pull` для получения изменений

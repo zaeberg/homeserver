@@ -167,6 +167,14 @@ services:
       # Docker socket для интеграции с контейнерами (опционально)
       # - /var/run/docker.sock:/var/run/docker.sock:ro
 
+    # Environment variables
+    environment:
+      # Разрешённые хосты для доступа (security мера Homepage)
+      - HOMEPAGE_ALLOWED_HOSTS=home.local
+
+      # Или разрешить все хосты (НЕ РЕКОМЕНДУЕТСЯ для продакшена):
+      # - HOMEPAGE_ALLOWED_HOSTS=*
+
     # Подключение к внутренней сети (доступ через Traefik)
     networks:
       - internal
