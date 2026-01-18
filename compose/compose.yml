@@ -18,6 +18,11 @@ services:
     labels:
       - "avahi.homeserver.service=Traefik Dashboard"
       - "avahi.homeserver.protocol=http"
+      # Traefik Dashboard routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.home.local`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
