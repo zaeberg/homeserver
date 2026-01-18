@@ -21,7 +21,7 @@
 
 	# Landing page with links to all services
 	handle / {
-		respond <!DOCTYPE html>
+		respond `<!DOCTYPE html>
 <html lang="ru">
 <head>
 	<meta charset="UTF-8">
@@ -68,6 +68,6 @@
 		</div>
 	</div>
 </body>
-</html> 200
+</html>` 200
 	}
 }
