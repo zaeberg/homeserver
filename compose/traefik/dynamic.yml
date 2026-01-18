@@ -10,14 +10,15 @@ http:
       entryPoints:
         - "web"
       middlewares:
-        - "dashboard-replacepath"
+        - "dashboard-to-root"
 
   middlewares:
-    # Переписывает путь / на /dashboard/ прозрачно (без редиректа)
-    dashboard-replacepath:
-      replacePathRegex:
-        regex: "^/$"
-        replacement: "/dashboard/"
+    # Редирект с / на /dashboard/ для удобства
+    dashboard-to-root:
+      redirectRegex:
+        regex: "^http://traefik.home.local/?$"
+        replacement: "http://traefik.home.local/dashboard/"
+        permanent: false
 
     # Middleware для добавления общих заголовков безопасности
     security-headers:
