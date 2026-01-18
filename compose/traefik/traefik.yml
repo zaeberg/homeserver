@@ -1,7 +1,7 @@
 # Traefik Global Configuration
 api:
   dashboard: true
-  insecure: false  # Отключаем небезопасный доступ, будем использовать Basic Auth
+  insecure: true  # Временно для теста
 
 entryPoints:
   web:
