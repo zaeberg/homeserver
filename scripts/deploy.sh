@@ -41,15 +41,10 @@ echo ""
 echo "Stopping existing containers (if any)..."
 docker compose --env-file compose/.env -f compose/compose.yml down 2>/dev/null || true
 
-# Pull latest images
+# Start services (images will be pulled automatically)
 echo ""
-echo "Pulling latest images..."
-docker compose --env-file compose/.env -f compose/compose.yml pull
-
-# Start services
-echo ""
-echo "Starting services..."
-docker compose --env-file compose/.env -f compose/compose.yml up -d
+echo "Starting services and pulling latest images..."
+docker compose --env-file compose/.env -f compose/compose.yml up -d --pull always
 
 success "Services deployed successfully"
 echo ""
