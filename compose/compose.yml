@@ -17,10 +17,9 @@ services:
       - public
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.home.local`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.home.local`)"
+      - "traefik.http.routers.dashboard.entrypoints=web"
       - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.middlewares=auth"
-      - "traefik.http.middlewares.auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wjC"  # test:test
       - "avahi.homeserver.service=Traefik Dashboard"
       - "avahi.homeserver.protocol=http"
     healthcheck:
@@ -31,11 +30,20 @@ services:
 
   traefik-avahi:
     image: hardillb/traefik-avahi-helper:latest
-    container_name: homelab-traefik-avahi
+    container_name: homelab-traefik-avahi-helper
     restart: unless-stopped
+    hostname: avahi-helper
+    ipc: host
+    security_opt:
+      - apparmor:unconfined
+      - seccomp:unconfined
+    cap_add:
+      - NET_ADMIN
+      - NEW_RAW
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
     networks:
       - internal
     environment:
