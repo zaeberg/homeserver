@@ -1,103 +1,28 @@
 services:
-  caddy:
-    image: caddy:2.7.6
-    container_name: homelab-caddy
+  traefik:
+    image: traefik:v3.6.7
+    container_name: homelab-traefik
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
+      - "8080:8080"  # Dashboard (только в локальной сети!)
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - /srv/data/caddy/data:/data
-      - /srv/data/caddy/config:/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - /srv/data/traefik/letsencrypt:/letsencrypt
     networks:
       - internal
       - public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.home.local`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wjC"  # test:test
     healthcheck:
-      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  vaultwarden:
-    image: vaultwarden/server:1.30.1
-    container_name: homelab-vaultwarden
-    restart: unless-stopped
-    env_file:
-      - .env
-    volumes:
-      - /srv/data/vaultwarden:/data
-    environment:
-      - DOMAIN=${BASE_URL}
-    networks:
-      - internal
-    expose:
-      - 80
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/alive"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  syncthing:
-    image: syncthing/syncthing:1.27.3
-    container_name: homelab-syncthing
-    restart: unless-stopped
-    hostname: syncthing
-    volumes:
-      - /srv/data/syncthing:/var/syncthing
-    environment:
-      - PUID=1000
-      - PGID=1000
-    networks:
-      - internal
-    expose:
-      - 8384
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8384/rest/system/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  filebrowser:
-    image: filebrowser/filebrowser:v2.23.0
-    container_name: homelab-filebrowser
-    restart: unless-stopped
-    env_file:
-      - .env
-    volumes:
-      - /srv/data/filebrowser:/srv
-      - /srv/data:/data
-    environment:
-      - FB_BASEURL=/files
-    networks:
-      - internal
-    expose:
-      - 80
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    command: >
-      /filebrowser
-      --address 0.0.0.0
-      --port 80
-      --baseurl /files
-      --database /srv/filebrowser.db
-      --root /data
-
-  uptime-kuma:
-    image: louislam/uptime-kuma:2.0.2
-    container_name: homelab-uptime-kuma
-    restart: unless-stopped
-    volumes:
-      - /srv/data/uptime-kuma:/app/data
-    networks:
-      - internal
-    expose:
-      - 3001
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 30s
       timeout: 10s
       retries: 3

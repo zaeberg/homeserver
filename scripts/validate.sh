@@ -51,7 +51,8 @@ echo "Checking required files..."
 
 check_file "compose/compose.yml"
 check_file "compose/.env.example"
-check_file "caddy/Caddyfile"
+check_file "compose/traefik/traefik.yml"
+check_file "compose/traefik/dynamic.yml"
 
 echo ""
 

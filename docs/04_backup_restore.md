@@ -229,7 +229,7 @@ source compose/.env
 restic restore latest --target /
 
 # 5. Создать директории для данных
-sudo mkdir -p /srv/data/{vaultwarden,syncthing,filebrowser,uptime-kuma,caddy}
+sudo mkdir -p /srv/data/traefik
 sudo chown -R $USER:$USER /srv/data
 
 # 6. Деплойнуть сервисы

@@ -24,20 +24,20 @@ docker compose --env-file compose/.env -f compose/compose.yml pull
 
 ```bash
 # Pull конкретного образа
-docker pull vaultwarden/server:1.30.1
+docker pull traefik:v3.6.7
 
 # Перезапуск только этого сервиса
-docker compose --env-file compose/.env -f compose/compose.yml up -d vaultwarden
+docker compose --env-file compose/.env -f compose/compose.yml up -d traefik
 
 # Проверка
-docker compose ps vaultwarden
+docker compose ps traefik
 ```
 
 ### Откат обновления
 
 ```bash
 # Найти предыдущий образ
-docker images | grep vaultwarden
+docker images | grep traefik
 
 # Запустить с предыдущей версией (отредактируйте тег в compose.yml)
 nano compose/compose.yml
@@ -64,30 +64,30 @@ docker compose logs -f
 ### Отдельный сервис
 
 ```bash
-# Логи vaultwarden
-docker compose logs vaultwarden
+# Логи traefik
+docker compose logs traefik
 
 # Логи в реальном времени
-docker compose logs -f vaultwarden
+docker compose logs -f traefik
 
 # Последние 50 строк
-docker compose logs --tail=50 vaultwarden
+docker compose logs --tail=50 traefik
 
 # Логи с метками времени
-docker compose logs -t vaultwarden
+docker compose logs -t traefik
 ```
 
 ### Логи с поиском
 
 ```bash
 # Поиск ошибки в логах
-docker compose logs vaultwarden | grep -i error
+docker compose logs traefik | grep -i error
 
 # Последние ошибки
-docker compose logs --tail=100 vaultwarden | grep -i error
+docker compose logs --tail=100 traefik | grep -i error
 
 # Логи с контекстом (5 строк до и после)
-docker compose logs vaultwarden | grep -C 5 -i error
+docker compose logs traefik | grep -C 5 -i error
 ```
 
 ### Systemd логи
@@ -120,11 +120,11 @@ docker compose --env-file compose/.env -f compose/compose.yml restart
 ### Перезапуск одного сервиса
 
 ```bash
-# Перезапустить vaultwarden
-docker compose --env-file compose/.env -f compose/compose.yml restart vaultwarden
+# Перезапустить traefik
+docker compose --env-file compose/.env -f compose/compose.yml restart traefik
 
 # Или по ID контейнера
-docker restart homelab-vaultwarden
+docker restart homelab-traefik
 ```
 
 ### Остановка и запуск
@@ -137,7 +137,7 @@ docker compose --env-file compose/.env -f compose/compose.yml stop
 docker compose --env-file compose/.env -f compose/compose.yml start
 
 # Остановить один сервис
-docker compose --env_file compose/.env -f compose/compose.yml stop vaultwarden
+docker compose --env_file compose/.env -f compose/compose.yml stop traefik
 ```
 
 ## Управление данными
@@ -158,8 +158,8 @@ du -sh /srv/data/*
 ### Резервное копирование вручную
 
 ```bash
-# Быстрый бэкап vaultwarden (tar)
-sudo tar -czf /tmp/vaultwarden-$(date +%F).tar.gz /srv/data/vaultwarden
+# Быстрый бэкап traefik конфигов (tar)
+sudo tar -czf /tmp/traefik-configs-$(date +%F).tar.gz /srv/homelab/homelab-server/compose/traefik/
 
 # Бэкап через restic
 ./scripts/backup.sh
@@ -193,7 +193,7 @@ docker stats
 docker stats --no-stream
 
 # Статистика конкретного контейнера
-docker stats homelab-vaultwarden
+docker stats homelab-traefik
 ```
 
 ### Использование диска
@@ -241,7 +241,7 @@ curl -I http://localhost/status
 docker ps --format "table {{.Names}}\t{{.Status}}"
 
 # Подробная информация
-docker inspect homelab-vaultwarden | grep -A 10 Health
+docker inspect homelab-traefik | grep -A 10 Health
 ```
 
 ## Управление конфигурацией
@@ -272,17 +272,21 @@ docker compose -f compose/compose.yml config
 ./scripts/deploy.sh
 ```
 
-### Изменение Caddyfile
+### Изменение конфигурации Traefik
 
 ```bash
-# Редактировать Caddyfile
-nano caddy/Caddyfile
+# Редактировать статическую конфигурацию (entryPoints, providers)
+nano compose/traefik/traefik.yml
 
-# Перезапустить caddy
-docker compose --env-file compose/.env -f compose/compose.yml restart caddy
+# Или редактировать динамическую конфигурацию (middlewares)
+nano compose/traefik/dynamic.yml
 
-# Проверить конфигурацию Caddy
-docker exec homelab-caddy caddy validate --config /etc/caddy/Caddyfile
+# Перезапустить Traefik
+docker compose --env-file compose/.env -f compose/compose.yml restart traefik
+
+# Проверить статус Traefik
+docker compose ps traefik
+docker compose logs traefik
 ```
 
 ## Доступ к контейнерам
@@ -290,24 +294,21 @@ docker exec homelab-caddy caddy validate --config /etc/caddy/Caddyfile
 ### Запуск shell в контейнере
 
 ```bash
-# Запустить bash в контейнере
-docker exec -it homelab-vaultwarden /bin/bash
-
-# Или sh (если bash недоступен)
-docker exec -it homelab-vaultwarden /bin/sh
+# Запустить shell в контейнере
+docker exec -it homelab-traefik /bin/sh
 
 # Выполнить команду без входа в shell
-docker exec homelab-vaultwarden ls /data
+docker exec homelab-traefik version
 ```
 
 ### Копирование файлов
 
 ```bash
 # Из контейнера на хост
-docker cp homelab-vaultwarden:/data/vaultwarden.db /tmp/
+docker cp homelab-traefik:/etc/traefik/traefik.yml /tmp/
 
 # С хоста в контейнер
-docker cp /tmp/config.json homelab-vaultwarden:/data/
+docker cp /tmp/traefik.yml homelab-traefik:/tmp/
 ```
 
 ## Обновление репозитория
@@ -412,14 +413,14 @@ echo "Monthly maintenance complete!"
 ### Регулярное обновление паролей
 
 ```bash
-# Изменить пароль filebrowser
-nano compose/.env  # FILEBROWSER_PASSWORD
+# Изменить Basic Auth для Traefik Dashboard
+nano compose/compose.yml  # Найти traefik.http.middlewares.auth.basicauth.users
 
-# Изменить admin token vaultwarden
-nano compose/.env  # VAULTWARDEN_ADMIN_TOKEN
+# Сгенерировать новый хеш
+htpasswd -nb username password | sed -e s/\\$/\\$\\$/g
 
-# Перезапустить сервисы
-./scripts/deploy.sh
+# Перезапустить Traefik
+docker compose restart traefik
 ```
 
 ### Проверка безопасности
@@ -437,41 +438,21 @@ sudo ss -tulpn | grep LISTEN
 
 ## Работа с сервисами индивидуально
 
-### Vaultwarden
+### Traefik
 
 ```bash
-# Сброс пароля администратора
-docker exec -it homelab-vaultwarden /vaultwarden hash --preset
+# Проверка версии
+docker exec homelab-traefik traefik version
 
-# Создание нового пользователя
-# См. документацию Vaultwarden: https://github.com/dani-garcia/vaultwarden/wiki
-```
+# Просмотр dashboard
+# http://SERVER_IP:8080 (Basic Auth: test:test)
 
-### Syncthing
+# Проверка конфигурации без перезапуска
+docker exec homelab-traefik cat /etc/traefik/traefik.yml
 
-```bash
-# Доступ к GUI Syncthing
-# http://SERVER_IP:8384 (если открыт порт) или через /sync
+# Тестирование новых правил (добавить в dynamic.yml)
+# Traefik автоматически подхватит изменения
 
-# Редактирование конфига
-nano /srv/data/syncthing/config/config.xml
-```
-
-### Filebrowser
-
-```bash
-# Изменение прав доступа
-nano /srv/data/filebrowser/filebrowser.db
-
-# Или через веб-интерфейс
-```
-
-### Uptime Kuma
-
-```bash
-# Доступ к настройкам мониторов
-# http://SERVER_IP/status
-
-# Резервное копирование конфига
-cp /srv/data/uptime-kuma/kuma.db /tmp/kuma.db.backup
+# Резервное копирование конфигов
+cp -r /srv/homelab/homelab-server/compose/traefik /tmp/traefik-backup
 ```

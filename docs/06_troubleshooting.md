@@ -57,8 +57,9 @@ cat compose/.env
 # Валидация compose.yml
 docker compose -f compose/compose.yml config
 
-# Проверить Caddyfile
-docker exec homelab-caddy caddy validate --config /etc/caddy/Caddyfile
+# Проверить Traefik конфигурацию
+cat compose/traefik/traefik.yml
+cat compose/traefik/dynamic.yml
 ```
 
 #### 2. Нет доступа к данным
@@ -293,26 +294,27 @@ echo $RESTIC_REPO_CLOUD
 docker compose ps
 
 # Проверить логи
-docker compose logs caddy
+docker compose logs traefik
 docker compose logs <service>
 
-# Проверить, что порт открыт
-sudo ss -tulpn | grep :80
+# Проверить, что порты открыты
+sudo ss -tulpn | grep ':80\|443\|8080'
 ```
 
 ### Решения
 
-#### 1. Caddy не работает
+#### 1. Traefik не работает
 
 ```bash
-# Проверить логи Caddy
-docker compose logs caddy
+# Проверить логи Traefik
+docker compose logs traefik
 
 # Проверить конфигурацию
-docker exec homelab-caddy caddy validate --config /etc/caddy/Caddyfile
+docker compose ps traefik
+docker exec homelab-traefik cat /etc/traefik/traefik.yml
 
-# Перезапустить Caddy
-docker compose --env-file compose/.env -f compose/compose.yml restart caddy
+# Перезапустить Traefik
+docker compose --env-file compose/.env -f compose/compose.yml restart traefik
 ```
 
 #### 2. Сервис не отвечает

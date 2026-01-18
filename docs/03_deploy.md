@@ -16,7 +16,7 @@
 Проверьте, что:
 - Docker установлен и пользователь в группе `docker`
 - Директории созданы: `/srv/homelab` и `/srv/data`
-- Порты 80/tcp и 22/tcp открыты в firewall
+- Порты 80/tcp, 443/tcp, 8080/tcp и 22/tcp открыты в firewall
 
 ### 2. Размещение репозитория
 
@@ -49,18 +49,10 @@ nano compose/.env
 
 **Минимальная конфигурация:**
 ```bash
-# Базовый URL
-BASE_URL=http://192.168.1.100
+# Базовый URL (для Traefik dashboard)
+BASE_URL=http://home.local
 
-# Vaultwarden
-VAULTWARDEN_ADMIN_TOKEN=$(openssl rand -base64 48)
-VAULTWARDEN_SIGNUPS_ALLOWED=false
-
-# Filebrowser
-FILEBROWSER_USERNAME=admin
-FILEBROWSER_PASSWORD=your_secure_password
-
-# Restic
+# Restic (если используете бэкапы)
 RESTIC_REPO=/mnt/backup/restic
 RESTIC_PASSWORD=your_restic_password
 ```
@@ -69,7 +61,7 @@ RESTIC_PASSWORD=your_restic_password
 
 ```bash
 # Создать все необходимые директории
-sudo mkdir -p /srv/data/{vaultwarden,syncthing,filebrowser,uptime-kuma,caddy,backup}
+sudo mkdir -p /srv/data/{traefik,backup}
 
 # Назначить права доступа
 sudo chown -R $USER:$USER /srv/data
@@ -87,7 +79,7 @@ chmod -R 755 /srv/data
 ```
 ✓ File exists: compose/compose.yml
 ✓ File exists: compose/.env.example
-✓ File exists: caddy/Caddyfile
+✓ Files exist: traefik/traefik.yml, traefik/dynamic.yml
 ✓ Docker Compose configuration is valid
 ✓ No 'latest' image tags found
 ✓ No .env files found in repository
@@ -112,55 +104,79 @@ chmod -R 755 /srv/data
 ### 7. Проверка работоспособности
 
 ```bash
-# Вручную проверить все endpoints
-./scripts/healthcheck.sh
+# Проверить статус контейнеров
+docker compose ps
+
+# Проверить логи Traefik
+docker compose logs traefik
 ```
 
 Откройте в браузере:
-- http://SERVER_IP/ — landing page со ссылками
-- http://SERVER_IP/vault — Vaultwarden
-- http://SERVER_IP/sync — Syncthing
-- http://SERVER_IP/files — Filebrowser
-- http://SERVER_IP/status — Uptime Kuma
+- http://SERVER_IP:8080 — Traefik Dashboard (Basic Auth: test/test)
+- http://SERVER_IP — Traefik default frontend (если настроен)
+
+**Примечание**: Для доступа к dashboard по доменному имени (`traefik.home.local`) настройте DNS или добавьте запись в `/etc/hosts`:
+```
+SERVER_IP traefik.home.local
+```
 
 ## Что делать после деплоя
 
-### 1. Настроить Vaultwarden
+### 1. Изменить Basic Auth для Traefik Dashboard
 
-1. Откройте http://SERVER_IP/vault
-2. Создайте учётную запись администратора
-3. Отключите регистрации в `.env`:
-   ```bash
-   VAULTWARDEN_SIGNUPS_ALLOWED=false
-   ```
-4. Перезапустите vaultwarden:
-   ```bash
-   cd /srv/homelab/homelab-server
-   docker compose --env-file compose/.env -f compose/compose.yml restart vaultwarden
-   ```
+Текущие учётные данные: `test:test` — **измените их!**
 
-### 2. Настроить Syncthing
+Отредактируйте `compose/compose.yml`, найдите секцию с `traefik.http.middlewares.auth.basicauth.users` и замените на сгенерированный хеш:
 
-1. Откройте http://SERVER_IP/sync
-2. Примите условия использования
-3. Настройте устройства для синхронизации
-4. (Опционально) Ограничьте доступ по паролю в настройках
+```bash
+# Сгенерировать хеш пароля
+htpasswd -nb username password | sed -e s/\\$/\\$\\$/g
 
-### 3. Настроить Filebrowser
+# Пример вывода: username:$apr1$hash...
+```
 
-Учётные данные уже настроены из `.env`:
-- Username: `FILEBROWSER_USERNAME` (по умолчанию `admin`)
-- Password: `FILEBROWSER_PASSWORD`
+Замените `test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wjC` на вашу строку.
 
-Измените пароль в веб-интерфейсе при первом входе.
+Перезапустите Traefik:
+```bash
+cd /srv/homelab/homelab-server
+docker compose --env-file compose/.env -f compose/compose.yml restart traefik
+```
 
-### 4. Настроить Uptime Kuma
+### 2. Настроить HTTPS (опционально)
 
-1. Откройте http://SERVER_IP/status
-2. Создайте учётную запись администратора
-3. Добавьте мониторы для ваших сервисов
+Traefik поддерживает автоматическое получение SSL сертификатов через Let's Encrypt.
 
-### 5. Настроить бэкап
+Раскомментируйте и настройте секцию `certificatesResolvers` в `compose/traefik/traefik.yml`:
+```yaml
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: your-email@example.com
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+```
+
+Добавьте `certResolver: letsencrypt` к router labels в `compose/compose.yml`.
+
+### 3. Добавить сервисы
+
+Теперь вы можете добавлять сервисы, просто добавляя их в `compose/compose.yml` с правильными Docker labels. Traefik автоматически их обнаружит.
+
+Пример добавления сервиса:
+```yaml
+services:
+  myapp:
+    image: myapp:latest
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.myapp.rule=Host(`myapp.home.local`)"
+      - "traefik.http.routers.myapp.entrypoints=web"
+      - "traefik.http.services.myapp.loadbalancer.server.port=8080"
+```
+
+### 4. Настроить бэкап
 
 См. `04_backup_restore.md`.
 
@@ -179,7 +195,7 @@ docker compose --env-file compose/.env -f compose/compose.yml pull
 ./scripts/deploy.sh
 
 # Проверка работоспособности
-./scripts/healthcheck.sh
+docker compose ps
 ```
 
 ## Удаление сервисов
@@ -200,7 +216,7 @@ docker image prune -a
 ## Troubleshooting
 
 Если что-то не работает:
-1. Проверьте логи: `docker compose logs <service>`
+1. Проверьте логи: `docker compose logs traefik`
 2. Проверьте статус: `docker compose ps`
-3. Запустите healthcheck: `./scripts/healthcheck.sh`
+3. Проверьте healthcheck: `docker inspect homelab-traefik | grep -A 10 Health`
 4. См. `06_troubleshooting.md` для детальной диагностики

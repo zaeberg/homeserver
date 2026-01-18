@@ -1,0 +1,27 @@
+# Динамическая конфигурация Traefik
+# Здесь можно переопределять настройки без перезапуска
+
+http:
+  middlewares:
+    # Middleware для добавления общих заголовков безопасности
+    security-headers:
+      headers:
+        sslRedirect: false
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "no-referrer"
+        customFrameOptionsValue: "SAMEORIGIN"
+
+# Для Basic Auth на dashboard Traefik (раскомментируйте когда понадобится)
+# Не забудьте сгенерировать хеш пароля: echo $(htpasswd -nb user password) | sed -e s/\\$/\\$\\$/g
+#
+#  middlewares:
+#    traefik-auth:
+#      basicAuth:
+#        users:
+#          - "user:$apr1$hash..."
