@@ -289,6 +289,54 @@ export RESTIC_REPO="rest:http://backup-server:8000/homelab"
 export RESTIC_REPO="sftp:user@backup-server:/backup/path"
 ```
 
+### Rclone (Яндекс Диск и другие облачные хранилища)
+
+Restic имеет нативную поддержку rclone — это позволяет использовать любые облачные хранилища, поддерживаемые rclone.
+
+**Установка и настройка rclone:**
+
+```bash
+# Установить rclone
+sudo apt install rclone
+
+# Настроить облачное хранилище (например, Яндекс Диск)
+rclone config
+```
+
+Пример настройки для Яндекс Диск:
+```
+name> yandex
+storage> yandex
+client_id> [нажмите Enter]
+client_secret> [нажмите Enter]
+Use web browser> y
+[Авторизуйтесь в браузере]
+Keep this "yandex" remote?> y
+```
+
+**Использование с restic:**
+
+```bash
+# В .env:
+export RESTIC_REPO="rclone:yandex:homelab-backups"
+export RESTIC_PASSWORD="your-password"
+
+# Инициализация
+restic init
+
+# Проверка подключения
+rclone lsd yandex:
+rclone about yandex:
+```
+
+**Преимущества rclone:**
+- Поддержка множества облачных хранилищ (Яндекс Диск, Google Drive, Dropbox, S3 и др.)
+- Работает через API (быстрее WebDAV)
+- Простая настройка OAuth авторизации
+- Автоматическое управление токенами
+
+**Примечание**: При первом использовании restic с rclone backend может запросить подтверждение запуска rclone — ответьте `y`.
+
 ## Мониторинг бэкапов
 
 ### Проверить логи
@@ -332,6 +380,42 @@ restic unlock
 # Для локального диска
 ls /mnt/backup/restic
 
+# Для rclone (Яндекс Диск)
+rclone lsd yandex:
+rclone about yandex:
+
 # Для S3
 curl https://s3.example.com
 ```
+
+### Проблемы с rclone backend
+
+**Ошибка "rclone not found"**:
+```bash
+# Убедитесь, что rclone установлен
+which rclone
+rclone version
+
+# Если не установлен, установите
+sudo apt install rclone
+```
+
+**Ошибка авторизации Яндекс Диск**:
+```bash
+# Проверьте конфигурацию rclone
+rclone config show yandex
+
+# Проверьте подключение
+rclone about yandex:
+
+# Если токен устарел, перенастройте
+rclone config
+# Выберите существующий remote -> Edit config
+```
+
+**Restic запрашивает подтверждение запуска rclone**:
+```
+Confirm? [yN] y
+```
+Ответьте `y` — это нормальное поведение при первом использовании rclone backend.
+

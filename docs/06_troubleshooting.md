@@ -229,6 +229,54 @@ nano compose/.env
 restic unlock
 ```
 
+#### 4. Rclone backend недоступен (Яндекс Диск)
+
+**Симптомы:**
+- Ошибка `rclone not found`
+- Ошибка `backend not ready` для rclone
+- Ошибка авторизации Яндекс Диск
+
+**Диагностика:**
+```bash
+# Проверить, что rclone установлен
+which rclone
+rclone version
+
+# Проверить конфигурацию rclone
+rclone config show yandex
+
+# Проверить подключение к Яндекс Диск
+rclone lsd yandex:
+rclone about yandex:
+```
+
+**Решения:**
+
+```bash
+# Если rclone не установлен
+sudo apt install rclone
+
+# Настроить rclone заново
+rclone config
+# Выбрать: n) New remote
+# Имя: yandex
+# Storage: yandex
+# Пройти авторизацию в браузере
+
+# Проверить подключение после настройки
+rclone about yandex:
+```
+
+**Проверка переменных окружения:**
+```bash
+# В .env должно быть:
+RESTIC_REPO_CLOUD=rclone:yandex:homelab-backups
+
+# Проверить
+source compose/.env
+echo $RESTIC_REPO_CLOUD
+```
+
 ---
 
 ## Проблема: Сервис недоступен по HTTP

@@ -339,27 +339,26 @@ restic init
 
 ---
 
-### Вариант 2: Яндекс Диск
+### Вариант 2: Яндекс Диск (через rclone)
 
 ```bash
-# Установить пакеты
-sudo apt install davfs2 restic
+# Установить rclone и restic
+sudo apt install rclone restic
 
-# Создать точку монтирования
-sudo mkdir -p /mnt/yandex-disk
-sudo usermod -aG davfs2 $USER
+# Настроить rclone с Yandex Disk
+rclone config
+```
 
-# Сохранить креденшиалы (замените на свои)
-mkdir -p ~/.davfs2
-echo "https://webdav.yandex.ru ВАШ_EMAIL ВАШ_ПАРОЛЬ" > ~/.davfs2/secrets
-chmod 600 ~/.davfs2/secrets
+**Проверить подключение:**
+```bash
+# Посмотреть корневую директорию
+rclone lsd yandex:
 
-# Добавить в fstab
-echo "https://webdav.yandex.ru /mnt/yandex-disk davfs user 0 0" | sudo tee -a /etc/fstab
+# Создать директорию для бэкапов
+rclone mkdir yandex:homelab-backups
 
-# Смонтировать
-sudo mount /mnt/yandex-disk
-mkdir -p /mnt/yandex-disk/homelab-backups
+# Проверить квоту
+rclone about yandex:
 ```
 
 Настроить `compose/.env`:
@@ -370,7 +369,7 @@ nano compose/.env
 Добавьте:
 ```bash
 RESTIC_REPO_LOCAL=
-RESTIC_REPO_CLOUD=/mnt/yandex-disk/homelab-backups
+RESTIC_REPO_CLOUD=rclone:yandex:homelab-backups
 RESTIC_PASSWORD=ваш_пароль
 ```
 
@@ -385,6 +384,8 @@ restic init
 ./scripts/backup.sh cloud
 ```
 
+**Важно**: При первом запуске restic может запросить подтверждение запуска rclone — ответьте `y`.
+
 ---
 
 ### Вариант 3: Гибридный (диск + Яндекс Диск)
@@ -398,7 +399,7 @@ nano compose/.env
 Добавьте оба пути:
 ```bash
 RESTIC_REPO_LOCAL=/mnt/backup/restic
-RESTIC_REPO_CLOUD=/mnt/yandex-disk/homelab-backups
+RESTIC_REPO_CLOUD=rclone:yandex:homelab-backups
 RESTIC_PASSWORD=ваш_пароль
 ```
 
@@ -414,7 +415,7 @@ RESTIC_PASSWORD=ваш_пароль
 export RESTIC_REPO=/mnt/backup/restic
 restic snapshots --compact
 
-export RESTIC_REPO=/mnt/yandex-disk/homelab-backups
+export RESTIC_REPO=rclone:yandex:homelab-backups
 restic snapshots --compact
 ```
 
