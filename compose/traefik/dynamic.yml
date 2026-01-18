@@ -2,6 +2,13 @@
 # Здесь можно переопределять настройки без перезапуска
 
 http:
+  routers:
+    # Traefik Dashboard
+    dashboard:
+      rule: "Host(`traefik.home.local`)"
+      service: "api@internal"
+      entryPoints:
+        - "web"
   middlewares:
     # Middleware для добавления общих заголовков безопасности
     security-headers:
