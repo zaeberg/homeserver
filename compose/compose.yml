@@ -30,7 +30,7 @@ services:
       retries: 3
 
   traefik-avahi:
-    image: ghcr.io/hardillb/traefik-avahi-helper:latest
+    image: hardillb/traefik-avahi-helper:latest
     container_name: homelab-traefik-avahi
     restart: unless-stopped
     volumes:
