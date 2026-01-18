@@ -52,17 +52,24 @@ cd /srv/homelab/homelab-server
 source compose/.env
 
 # Проверить переменные
-echo "RESTIC_REPO: $RESTIC_REPO"
+echo "RESTIC_REPO_LOCAL: $RESTIC_REPO_LOCAL"
+echo "RESTIC_REPO_CLOUD: $RESTIC_REPO_CLOUD"
 echo "RESTIC_PASSWORD: [HIDDEN]"
 
-# Инициализировать restic репозиторий
-restic init
+# Инициализировать restic репозиторий (ВАЖНО: с явным указанием -r!)
+# Для локального диска:
+restic -r /mnt/backup/restic init
+
+# Для rclone (Яндекс Диск):
+restic -r rclone:yandex:homelab-backups init
 ```
 
 Ожидаемый вывод:
 ```
 created restic repository <ID> at ...
 ```
+
+**Важно**: Всегда используйте флаг `-r` для указания репозитория, даже если установлена переменная `RESTIC_REPO`.
 
 ## Ручной бэкап
 
@@ -115,6 +122,18 @@ systemctl status homelab-backup.timer
 ```
 
 ## Управление бэкапами
+
+**Важно**: Все команды `restic` требуют флага `-r` для указания репозитория, особенно при использовании rclone backend:
+
+```bash
+# Для локального репозитория
+export RESTIC_REPO=/mnt/backup/restic
+restic -r $RESTIC_REPO snapshots
+
+# Для rclone (Яндекс Диск)
+export RESTIC_REPO=rclone:yandex:homelab-backups
+restic -r $RESTIC_REPO snapshots
+```
 
 ### Просмотр снапшотов
 

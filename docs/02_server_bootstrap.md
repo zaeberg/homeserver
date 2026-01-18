@@ -327,15 +327,17 @@ RESTIC_PASSWORD=ваш_пароль
 ```bash
 source compose/.env
 
-# Создать и инициализировать репозиторий
+# Создать и инициализировать репозиторий (ВАЖНО: делается один раз!)
 sudo mkdir -p $RESTIC_REPO_LOCAL
 sudo chown $USER:$USER $RESTIC_REPO_LOCAL
 export RESTIC_REPO=$RESTIC_REPO_LOCAL
-restic init
+restic -r /mnt/backup/restic init
 
 # Проверить бэкап
 ./scripts/backup.sh local
 ```
+
+**Важно**: Команду `restic init` нужно выполнить **один раз** перед первым бэкапом.
 
 ---
 
@@ -416,14 +418,18 @@ RESTIC_PASSWORD=ваш_пароль
 ```bash
 source compose/.env
 
+# Инициализировать restic репозиторий (ВАЖНО: делается один раз!)
 export RESTIC_REPO=$RESTIC_REPO_CLOUD
-restic init
+restic -r rclone:yandex:homelab-backups init
 
 # Проверить бэкап
 ./scripts/backup.sh cloud
 ```
 
-**Важно**: При первом запуске restic может запросить подтверждение запуска rclone — ответьте `y`.
+**Важно**:
+- Команду `restic init` нужно выполнить **один раз** перед первым бэкапом
+- При первом запуске restic может запросить подтверждение запуска rclone — ответьте `y`
+- После инициализации бэкапы будут выполняться автоматически через systemd timer
 
 ---
 
@@ -444,6 +450,13 @@ RESTIC_PASSWORD=ваш_пароль
 
 Проверить оба бэкапа:
 ```bash
+# Инициализировать ОБА репозитория (один раз!)
+export RESTIC_REPO=/mnt/backup/restic
+restic -r /mnt/backup/restic init
+
+export RESTIC_REPO=rclone:yandex:homelab-backups
+restic -r rclone:yandex:homelab-backups init
+
 # Локальный бэкап
 ./scripts/backup.sh local
 
@@ -451,11 +464,9 @@ RESTIC_PASSWORD=ваш_пароль
 ./scripts/backup.sh cloud
 
 # Проверить снапшоты
-export RESTIC_REPO=/mnt/backup/restic
-restic snapshots --compact
+restic -r /mnt/backup/restic snapshots --compact
 
-export RESTIC_REPO=rclone:yandex:homelab-backups
-restic snapshots --compact
+restic -r rclone:yandex:homelab-backups snapshots --compact
 ```
 
 ---
