@@ -4,6 +4,7 @@
 # Этот файл описывает основные сервисы инфраструктуры:
 # - Traefik: reverse proxy с Docker auto-discovery
 # - traefik-avahi-helper: mDNS/Bonjour для локальной сети (.home.local)
+# - Homepage: главная страница с навигацией по сервисам
 #
 # Для добавления новых сервисов см. docs/07_adding_services.md
 # =============================================================================
@@ -137,6 +138,68 @@ services:
     environment:
       - HOSTNAME=home      # Base hostname для сервисов
       - DOMAIN=.local      # Домен для mDNS (.home.local)
+
+  # ---------------------------------------------------------------------------
+  # Homepage - Dashboard / Landing Page
+  # ---------------------------------------------------------------------------
+  # Главная страница homelab с навигацией по всем сервисам.
+  # Показывает закладки, виджеты состояния сервисов, информацию о системе.
+  #
+  # Ports:
+  #   - 3000: HTTP (внутренний, через Traefik)
+  #
+  # Access: http://home.local
+  # Docs: https://gethomepage.dev/
+  # Config: /srv/data/homepage/config/
+  # ---------------------------------------------------------------------------
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+
+    container_name: homelab-homepage
+
+    restart: unless-stopped
+
+    # Volumes - конфигурационные файлы
+    volumes:
+      # Конфигурация Homepage (bookmarks.yaml, services.yaml, settings.yaml, etc.)
+      - /srv/data/homepage/config:/app/config
+
+      # Docker socket для интеграции с контейнерами (опционально)
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    # Подключение к внутренней сети (доступ через Traefik)
+    networks:
+      - internal
+
+    # Docker Labels для Traefik и mDNS
+    labels:
+      # ---------------------------------------------------------------------------
+      # mDNS/Bonjour labels (для traefik-avahi-helper)
+      # ---------------------------------------------------------------------------
+      - "avahi.homeserver.service=Homepage"  # Название сервиса
+      - "avahi.homeserver.protocol=http"     # Протокол
+
+      # ---------------------------------------------------------------------------
+      # Traefik labels (routing)
+      # ---------------------------------------------------------------------------
+      - "traefik.enable=true"  # Включить Traefik для этого контейнера
+
+      # Router: правило маршрутизации по hostname
+      - "traefik.http.routers.homepage.rule=Host(`home.local`)"
+
+      # Service: какой порт контейнера использовать
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+
+      # EntryPoint: принимать запросы на порту 80 (web)
+      - "traefik.http.routers.homepage.entrypoints=web"
+
+    # Healthcheck - проверка работоспособности
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 # =============================================================================
 # Networks - Сети Docker
