@@ -349,6 +349,45 @@ sudo apt install rclone restic
 rclone config
 ```
 
+Интерактивная настройка rclone:
+```
+No remotes found - make a new one
+n) New remote
+s) Set configuration password
+n/s> n
+
+name> yandex
+
+Type of storage to configure.
+Choose a number from below, or type in your own value
+XX / Yandex Disk
+   \ "yandex"
+Storage> yandex
+
+Yandex Client Id - leave blank normally.
+client_id> [нажмите Enter]
+
+Yandex Client Secret - leave blank normally.
+client_secret> [нажмите Enter]
+
+Use web browser to automatically authenticate rclone with remote?
+y) Yes
+n) No
+y/n> y
+
+[Откроется браузер для авторизации в Яндексе]
+
+Configuration successful.
+Keep this "yandex" remote?
+y) Yes this is OK
+e) Edit this remote
+d) Delete this remote
+y/e/d> y
+
+q) Quit config
+e/n/d/r> q
+```
+
 **Проверить подключение:**
 ```bash
 # Посмотреть корневую директорию

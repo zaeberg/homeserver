@@ -104,7 +104,7 @@ log "Backup targets: $BACKUP_TARGETS"
 # Perform backup
 log "Running restic backup..."
 echo ""
-if restic backup $BACKUP_TARGETS \
+if restic -r "$RESTIC_REPO" backup $BACKUP_TARGETS \
 	--exclude-file=.gitignore \
 	--exclude=".env" \
 	--exclude="*.log" \
@@ -123,7 +123,7 @@ fi
 echo ""
 log "Running restic forget --prune with retention: $RETENTION"
 echo ""
-if restic forget --prune $RETENTION 2>&1 | tee -a /srv/data/backup/backup.log; then
+if restic -r "$RESTIC_REPO" forget --prune $RETENTION 2>&1 | tee -a /srv/data/backup/backup.log; then
 	log "Prune completed successfully"
 	success "Old snapshots pruned successfully"
 else
@@ -134,7 +134,7 @@ fi
 # Show repository stats
 echo ""
 log "Repository statistics:"
-restic stats 2>&1 | tee -a /srv/data/backup/backup.log
+restic -r "$RESTIC_REPO" stats 2>&1 | tee -a /srv/data/backup/backup.log
 
 echo ""
 log "Backup process finished"
