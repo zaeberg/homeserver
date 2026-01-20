@@ -21,7 +21,7 @@ logo:
 # ----------------------------------------------------------------------------
 # Цветовая схема (light, dark, or a custom hex color)
 background:
-  image: https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop
+  image: https://images.unsplash.com/photo-1483982258113-b72862e6cff6?q=80&w=2070&auto=format&fit=crop
 
 # Определения стилей для карточек
 cardBlur: md
