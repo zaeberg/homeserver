@@ -104,7 +104,7 @@ services:
   # Docs: https://gethomepage.dev/
   # ---------------------------------------------------------------------------
   homepage:
-    image: gethomepage/homepage:1.9.0
+    image: gethomepage/homepage:v1.9.0
 
     container_name: homelab-homepage
 
