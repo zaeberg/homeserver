@@ -100,7 +100,8 @@ services:
   # Homepage - Dashboard / Landing Page
   # ---------------------------------------------------------------------------
   # Главная страница homelab с навигацией по всем сервисам.
-  # Config: compose/homepage/config/ (хранится в репозитории)
+  # Config: /srv/data/homepage/config/ (копируется из репозитория при деплое)
+  # Источник конфигов: compose/homepage/config/
   # Docs: https://gethomepage.dev/
   # ---------------------------------------------------------------------------
   homepage:
@@ -111,7 +112,7 @@ services:
     restart: unless-stopped
 
     volumes:
-      - ./homepage/config:/app/config:ro  # Конфиги из репозитория (read-only)
+      - /srv/data/homepage/config:/app/config  # Конфиги копируются из compose/homepage/config/ при деплое
 
     environment:
       - HOMEPAGE_ALLOWED_HOSTS=home.local

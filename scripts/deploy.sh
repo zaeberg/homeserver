@@ -33,6 +33,15 @@ fi
 
 success "Environment file found"
 
+# Deploy Homepage configs
+echo ""
+echo "Deploying Homepage configs..."
+if [ -x "scripts/deploy-homepage-config.sh" ]; then
+    scripts/deploy-homepage-config.sh
+else
+    warn "deploy-homepage-config.sh not found or not executable, skipping..."
+fi
+
 # Stop existing containers
 echo ""
 echo "Stopping existing containers..."
