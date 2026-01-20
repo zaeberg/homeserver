@@ -1,0 +1,19 @@
+# =============================================================================
+# Homepage - Bookmarks Configuration
+# =============================================================================
+# Этот файл определяет закладки, которые отображаются на главной странице.
+# Структура: Группа → Подгруппа → Закладка
+#
+# Docs: https://gethomepage.dev/latest/configs/bookmarks/
+# =============================================================================
+
+- Infrastructure:
+    - Traefik:
+        - abbr: TF
+          href: http://traefik.home.local/dashboard/
+          description: Reverse Proxy & Load Balancer Dashboard
+
+    - Glances:
+        - abbr: GL
+          href: http://glances.home.local
+          description: System Resources Monitor

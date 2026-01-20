@@ -1,0 +1,25 @@
+# =============================================================================
+# Homepage - Services Configuration
+# =============================================================================
+# Этот файл определяет сервисы для мониторинга их состояния.
+# Homepage будет показывать статус (online/offline) для каждого сервиса.
+#
+# Docs: https://gethomepage.dev/latest/configs/services/
+# =============================================================================
+
+- Infrastructure:
+    - Traefik:
+        href: http://traefik.home.local/dashboard/
+        description: Reverse Proxy & Load Balancer
+        widget:
+          type: traefik
+          url: http://traefik.home.local
+          icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons@master/png/traefik.png
+
+    - Glances:
+        href: http://glances.home.local
+        description: System Monitoring
+        widget:
+          type: glances
+          url: http://glances.home.local
+          icon: https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons@master/png/glances.png
