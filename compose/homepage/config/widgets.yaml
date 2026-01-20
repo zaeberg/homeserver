@@ -10,24 +10,24 @@
 # ----------------------------------------------------------------------------
 # Информация о ресурсах системы
 # ----------------------------------------------------------------------------
-- resource:
-    cpu: true
-    memory: true
-    disk: /
+# - resource:
+#     cpu: true
+#     memory: true
+#     disk: /
 
 # ----------------------------------------------------------------------------
 # Погода (Open-Meteo, бесплатный API)
 # ----------------------------------------------------------------------------
-- openmeteo:
-    label: Kaliningrad
-    latitude: 54.7104
-    longitude: 20.4522
-    units: metric
-    timezone: Europe/Kaliningrad
-    forecast: days=3
+# - openmeteo:
+#     label: Kaliningrad
+#     latitude: 54.7104
+#     longitude: 20.4522
+#     units: metric
+#     timezone: Europe/Kaliningrad
+#     forecast: days=3
 
 # ----------------------------------------------------------------------------
 # Логотип
 # ----------------------------------------------------------------------------
-- logo:
-    icon: mdi-server-network
+# - logo:
+#     icon: mdi-server-network

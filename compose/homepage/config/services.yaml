@@ -9,9 +9,13 @@
 
 - Infrastructure:
     - Traefik:
+        icon: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrCi_Nv2Gj4AMPowiE8u6BJrI7eBsxYaTudw&s
         href: http://traefik.home.local/dashboard/
         description: Reverse Proxy & Load Balancer
 
     - Glances:
+        icon: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZ8dLPz9dNVCT20UrjZimhGYUab0E4Z4itFg&s
         href: http://glances.home.local
         description: System Monitoring
+
+
