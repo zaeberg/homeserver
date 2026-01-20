@@ -104,7 +104,7 @@ services:
   # Docs: https://gethomepage.dev/
   # ---------------------------------------------------------------------------
   homepage:
-    image: ghcr.io/gethomepage/homepage:latest
+    image: gethomepage/homepage:1.9.0
 
     container_name: homelab-homepage
 
@@ -145,7 +145,7 @@ services:
   # Docs: https://glances.readthedocs.io/
   # ---------------------------------------------------------------------------
   glances:
-    image: nicolargo/glances:latest-full
+    image: nicolargo/glances:4.4.1
 
     container_name: homelab-glances
 
