@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-# Script: restore_test.sh
-# Description: Test backup restoration by restoring to temporary location
+# Test backup restoration by restoring to temporary location
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"

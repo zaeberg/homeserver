@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Script: healthcheck.sh
-# Description: Check HTTP availability of all homelab services
+# Check HTTP availability of homelab services
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"

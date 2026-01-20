@@ -1,9 +1,7 @@
 #!/bin/bash
 set -e
 
-# Script: deploy.sh
-# Description: Deploy homelab services
-
+# Deploy homelab services
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
@@ -23,27 +21,26 @@ warn() {
 echo "=== Homelab Deployment ==="
 echo ""
 
-# Check if .env exists
+# Check .env
 if [ ! -f "compose/.env" ]; then
 	echo "Error: compose/.env not found!"
 	echo ""
 	echo "Create it from the example:"
 	echo "  cp compose/.env.example compose/.env"
 	echo "  chmod 600 compose/.env"
-	echo "  # Then edit compose/.env with your secrets"
 	exit 1
 fi
 
 success "Environment file found"
 
-# Stop existing containers if they exist
+# Stop existing containers
 echo ""
-echo "Stopping existing containers (if any)..."
+echo "Stopping existing containers..."
 docker compose --env-file compose/.env -f compose/compose.yml down 2>/dev/null || true
 
-# Start services (images will be pulled automatically)
+# Start services
 echo ""
-echo "Starting services and pulling latest images..."
+echo "Starting services..."
 docker compose --env-file compose/.env -f compose/compose.yml up -d --pull always
 
 success "Services deployed successfully"
@@ -57,7 +54,7 @@ echo ""
 # Run healthcheck
 if [ -x "scripts/healthcheck.sh" ]; then
 	echo "Running healthcheck..."
-	sleep 5  # Give services time to start
+	sleep 5
 	scripts/healthcheck.sh
 else
 	warn "healthcheck.sh not found or not executable"
@@ -65,10 +62,3 @@ fi
 
 echo ""
 success "Deployment complete!"
-echo ""
-echo "Access your services at:"
-echo "  Landing page:  http://localhost/"
-echo "  Vaultwarden:  http://localhost/vault"
-echo "  Syncthing:    http://localhost/sync"
-echo "  Filebrowser:  http://localhost/files"
-echo "  Uptime Kuma:  http://localhost/status"

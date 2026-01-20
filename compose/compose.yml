@@ -1,11 +1,7 @@
 # =============================================================================
 # Docker Compose стек Homeserver
 # =============================================================================
-# Этот файл описывает основные сервисы инфраструктуры:
-# - Traefik: reverse proxy с Docker auto-discovery
-# - traefik-avahi-helper: mDNS/Bonjour для локальной сети (.home.local)
-# - Homepage: главная страница с навигацией по сервисам
-#
+# Основные сервисы инфраструктуры: Traefik (reverse proxy), mDNS publisher, Homepage.
 # Для добавления новых сервисов см. docs/07_adding_services.md
 # =============================================================================
 
@@ -17,72 +13,47 @@ services:
   # Автоматически обнаруживает Docker контейнеры через labels и маршрутизирует
   # запросы по hostname.
   #
-  # Ports:
-  #   - 80: HTTP (web)
-  #   - 443: HTTPS (websecure)
-  #   - 8080: Dashboard (только в локальной сети!)
-  #
   # Dashboard: http://traefik.home.local/dashboard/
   # Docs: https://doc.traefik.io/traefik/
   # ---------------------------------------------------------------------------
   traefik:
     image: traefik:v3.6.7  # Фиксированная версия для стабильности
 
-    container_name: homelab-traefik  # Удобное имя для логов и управления
+    container_name: homelab-traefik
 
-    restart: unless-stopped  # Автоматический перезапуск при сбое
+    restart: unless-stopped
 
-    # Порты, доступные с хост-системы
     ports:
       - "80:80"      # HTTP - входящие запросы
       - "443:443"    # HTTPS - для будущего использования с Let's Encrypt
       - "8080:8080"  # Dashboard - только для локальной сети (firewall!)
 
-    # Volumes - подключение файлов и директорий
     volumes:
-      # Docker socket для auto-discovery контейнеров
       - /var/run/docker.sock:/var/run/docker.sock:ro
-
-      # Конфигурационные файлы Traefik (readonly для безопасности)
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-
-      # Let's Encrypt сертификаты (будущее использование)
       - /srv/data/traefik/letsencrypt:/letsencrypt
 
-    # Подключение к сетям
     networks:
       - internal  # Внутренняя сеть для общения с сервисами
       - public    # Публичная сеть для приёма внешних запросов
 
-    # Docker Labels для Traefik (self-routing!)
     labels:
-      # ---------------------------------------------------------------------------
       # mDNS/Bonjour labels (для traefik-avahi-helper)
-      # ---------------------------------------------------------------------------
-      - "avahi.homeserver.service=Traefik Dashboard"  # Название сервиса
-      - "avahi.homeserver.protocol=http"               # Протокол
+      - "avahi.homeserver.service=Traefik Dashboard"
+      - "avahi.homeserver.protocol=http"
 
-      # ---------------------------------------------------------------------------
-      # Traefik labels (routing для самого dashboard'а)
-      # ---------------------------------------------------------------------------
-      - "traefik.enable=true"  # Включить Traefik для этого контейнера
-
-      # Router: правило маршрутизации по hostname
+      # Traefik labels (self-routing для dashboard'а)
+      - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`traefik.home.local`)"
-
-      # Service: использовать internal API Traefik
       - "traefik.http.routers.dashboard.service=api@internal"
-
-      # EntryPoint: принимать запросы на порту 80 (web)
       - "traefik.http.routers.dashboard.entrypoints=web"
 
-    # Healthcheck - проверка работоспособности
     healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]  # Команда проверки
-      interval: 30s     # Интервал между проверками
-      timeout: 10s      # Таймаут проверки
-      retries: 3        # Количество попыток до mark as unhealthy
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # ---------------------------------------------------------------------------
   # traefik-avahi-helper - mDNS/Bonjour Publisher
@@ -90,67 +61,47 @@ services:
   # Публикует Docker контейнеры в локальной сети через mDNS/Bonjour.
   # Позволяет обращаться к сервисам по именам вида *.home.local без DNS.
   #
-  # Как это работает:
-  #   1. Читает labels контейнеров (avahi.homeserver.*)
-  #   2. Публикует их через avahi-daemon на хост-системе
-  #   3. Клиенты видят сервисы как *.home.local
-  #
   # Requirements:
   #   - avahi-daemon должен быть установлен на хосте
   #   - /var/run/avahi-daemon/socket должен быть доступен
-  #
   # Docs: https://github.com/hardillb/traefik-avahi-helper
   # ---------------------------------------------------------------------------
   traefik-avahi:
-    image: hardillb/traefik-avahi-helper:latest  # Всегда latest (меняется редко)
+    image: hardillb/traefik-avahi-helper:latest
 
-    container_name: homelab-traefik-avahi-helper  # Удобное имя
+    container_name: homelab-traefik-avahi-helper
 
-    restart: unless-stopped  # Автоматический перезапуск
+    restart: unless-stopped
 
-    hostname: avahi-helper  # Hostname внутри контейнера
+    hostname: avahi-helper
 
     # IPC и security настройки (требуются для avahi)
-    ipc: host  # Shared IPC namespace для общения с avahi-daemon
+    ipc: host
     security_opt:
-      - apparmor:unconfined  # Отключить AppArmor (требуется для avahi)
-      - seccomp:unconfined   # Отключить seccomp (требуется для avahi)
+      - apparmor:unconfined
+      - seccomp:unconfined
     cap_add:
-      - NET_ADMIN  # Capability для изменения network config
-      - NET_RAW    # Capability для raw sockets (mDNS)
+      - NET_ADMIN
+      - NET_RAW
 
-    # Volumes - подключение socket'ов
     volumes:
-      # Docker socket для чтения labels контейнеров
       - /var/run/docker.sock:/var/run/docker.sock:ro
-
-      # Avahi socket для публикации сервисов
       - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
-
-      # D-Bus socket для общения с system bus
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
 
-    # Подключение только к внутренней сети (не нужен внешний доступ)
     networks:
       - internal
 
-    # Environment variables
     environment:
-      - HOSTNAME=home      # Base hostname для сервисов
-      - DOMAIN=.local      # Домен для mDNS (.home.local)
+      - HOSTNAME=home
+      - DOMAIN=.local
 
   # ---------------------------------------------------------------------------
   # Homepage - Dashboard / Landing Page
   # ---------------------------------------------------------------------------
   # Главная страница homelab с навигацией по всем сервисам.
-  # Показывает закладки, виджеты состояния сервисов, информацию о системе.
-  #
-  # Ports:
-  #   - 3000: HTTP (внутренний, через Traefik)
-  #
-  # Access: http://home.local
-  # Docs: https://gethomepage.dev/
   # Config: /srv/data/homepage/config/
+  # Docs: https://gethomepage.dev/
   # ---------------------------------------------------------------------------
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
@@ -159,49 +110,26 @@ services:
 
     restart: unless-stopped
 
-    # Volumes - конфигурационные файлы
     volumes:
-      # Конфигурация Homepage (bookmarks.yaml, services.yaml, settings.yaml, etc.)
       - /srv/data/homepage/config:/app/config
 
-      # Docker socket для интеграции с контейнерами (опционально)
-      # - /var/run/docker.sock:/var/run/docker.sock:ro
-
-    # Environment variables
     environment:
-      # Разрешённые хосты для доступа (security мера Homepage)
       - HOMEPAGE_ALLOWED_HOSTS=home.local
 
-      # Или разрешить все хосты (НЕ РЕКОМЕНДУЕТСЯ для продакшена):
-      # - HOMEPAGE_ALLOWED_HOSTS=*
-
-    # Подключение к внутренней сети (доступ через Traefik)
     networks:
       - internal
 
-    # Docker Labels для Traefik и mDNS
     labels:
-      # ---------------------------------------------------------------------------
-      # mDNS/Bonjour labels (для traefik-avahi-helper)
-      # ---------------------------------------------------------------------------
-      - "avahi.homeserver.service=Homepage"  # Название сервиса
-      - "avahi.homeserver.protocol=http"     # Протокол
+      # mDNS/Bonjour labels
+      - "avahi.homeserver.service=Homepage"
+      - "avahi.homeserver.protocol=http"
 
-      # ---------------------------------------------------------------------------
       # Traefik labels (routing)
-      # ---------------------------------------------------------------------------
-      - "traefik.enable=true"  # Включить Traefik для этого контейнера
-
-      # Router: правило маршрутизации по hostname
+      - "traefik.enable=true"
       - "traefik.http.routers.homepage.rule=Host(`home.local`)"
-
-      # Service: какой порт контейнера использовать
       - "traefik.http.services.homepage.loadbalancer.server.port=3000"
-
-      # EntryPoint: принимать запросы на порту 80 (web)
       - "traefik.http.routers.homepage.entrypoints=web"
 
-    # Healthcheck - проверка работоспособности
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
       interval: 30s
@@ -213,44 +141,13 @@ services:
 # Networks - Сети Docker
 # =============================================================================
 
-# ---------------------------------------------------------------------------
-# Internal Network - Внутренняя изолированная сеть
-# ---------------------------------------------------------------------------
-# Characteristics:
-#   - driver: bridge (виртуальный switch)
-#   - internal: true (БЕЗ выхода в интернет!)
-#
-# Назначение:
-#   - Все сервисы подключены к этой сети по умолчанию
-#   - Сервисы могут общаться друг с другом
-#   - НЕТ прямого доступа из интернета
-#   - Traefik может маршрутизировать запросы с public → internal
-#
-# Examples:
-#   - Базы данных (только внутренний доступ)
-#   - Admin панели (только локальный доступ)
-#   - Backend API (вызывается только через Traefik)
-# ---------------------------------------------------------------------------
 networks:
+  # Internal Network - Внутренняя изолированная сеть (без интернета)
+  # Все сервисы подключены к этой сети, Traefik маршрутизирует запросы
   internal:
     driver: bridge
-    internal: true  # БЛОКИРУЕТ выход в интернет!
+    internal: true
 
-  # ---------------------------------------------------------------------------
-  # Public Network - Публичная сеть (для будущего использования)
-  # ---------------------------------------------------------------------------
-  # Characteristics:
-  #   - driver: bridge (виртуальный switch)
-  #   - Есть выход в интернет
-  #
-  # Назначение:
-  #   - Traefik подключен для приёма внешних запросов
-  #   - Сервисы с внешним доступом (когда будет настроен HTTPS)
-  #
-  # Examples:
-  #   - Публичные веб-сайты
-  #   - API с внешним доступом
-  #   - Webhooks из внешних систем
-  # ---------------------------------------------------------------------------
+  # Public Network - Для внешних запросов (когда будет настроен HTTPS)
   public:
-    driver: bridge  # Обычная bridge network с интернетом
+    driver: bridge

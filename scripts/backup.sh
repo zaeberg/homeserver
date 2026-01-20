@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-# Script: backup.sh
-# Description: Backup homelab data using Restic
+# Backup homelab data using Restic
 # Usage: ./scripts/backup.sh [local|cloud]
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -13,7 +12,6 @@ if [ -f "compose/.env" ]; then
 	set -a
 	source compose/.env
 	set +a
-	# Export RESTIC_PASSWORD explicitly for restic commands
 	export RESTIC_PASSWORD
 else
 	echo "Error: compose/.env not found"

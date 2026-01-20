@@ -1,13 +1,8 @@
 # =============================================================================
 # Traefik Dynamic Configuration
 # =============================================================================
-# Это ДИНАМИЧЕСКАЯ конфигурация Traefik, которая НЕ требует перезапуска.
-# Здесь определяются routers, middlewares, services, которые можно менять
-# на лету. Traefik автоматически применяет изменения через watch: true
-#
-# Статическая конфигурация (traefik.yml) требует перезапуска.
-# Динамическая конфигурация (этот файл) применяется мгновенно.
-#
+# Динамическая конфигурация Traefik, применяется без перезапуска.
+# Здесь определяются routers, middlewares, services.
 # Traefik v3.6.7 Docs: https://doc.traefik.io/traefik/v3.6/getting-started/configuration-overview/
 # =============================================================================
 
@@ -15,199 +10,42 @@ http:
   # ---------------------------------------------------------------------------
   # Routers - Правила маршрутизации
   # ---------------------------------------------------------------------------
-  # Routers определяют, какие запросы к каким сервисам направлять.
-  # Правила основаны на hostname, path, headers, etc.
-  # ---------------------------------------------------------------------------
   routers:
-    # ---------------------------------------------------------------------------
     # Traefik Dashboard Router
-    # ---------------------------------------------------------------------------
-    # Обрабатывает запросы к Traefik Dashboard
-    # ---------------------------------------------------------------------------
     dashboard:
-      # Правило маршрутизации: совпадение по hostname
-      # Dashboard доступен по http://traefik.home.local
       rule: "Host(`traefik.home.local`)"
-
-      # Service: api@internal - встроенный service Traefik для Dashboard
       service: "api@internal"
-
-      # EntryPoint: принимать запросы только на порту 80 (web)
       entryPoints:
         - "web"
-
-      # Middlewares: применить к этому router (в порядке указания)
       middlewares:
-        - "dashboard-to-root"  # Редирект / → /dashboard/
+        - "dashboard-to-root"
 
   # ---------------------------------------------------------------------------
   # Middlewares - Модификация запросов/ответов
   # ---------------------------------------------------------------------------
-  # Middlewares применяются к запросам до того, как они достигнут service.
-  # Могут модифицировать headers, делать redirectы, auth, etc.
-  #
   # Docs: https://doc.traefik.io/traefik/middlewares/overview/
   # ---------------------------------------------------------------------------
   middlewares:
-    # ---------------------------------------------------------------------------
     # Dashboard Redirect Middleware
-    # ---------------------------------------------------------------------------
-    # Перенаправляет запрос с корня (/) на /dashboard/ для удобства
-    #
-    # Пример:
-    #   http://traefik.home.local/ → http://traefik.home.local/dashboard/
-    # ---------------------------------------------------------------------------
+    # Перенаправляет http://traefik.home.local/ → http://traefik.home.local/dashboard/
     dashboard-to-root:
       redirectRegex:
-        # Regex: совпадает с "http://traefik.home.local/" или "http://traefik.home.local"
         regex: "^http://traefik.home.local/?$"
-
-        # Replacement: перенаправить на /dashboard/
         replacement: "http://traefik.home.local/dashboard/"
+        permanent: false  # 302 Temporary Redirect
 
-        # permanent: false = 302 Temporary Redirect (может измениться)
-        # permanent: true  = 301 Permanent Redirect (кэшируется браузерами)
-        permanent: false
-
-    # ---------------------------------------------------------------------------
     # Security Headers Middleware
-    # ---------------------------------------------------------------------------
-    # Добавляет HTTP headers безопасности ко всем ответам.
-    # Рекомендуется применять ко всем внешним сервисам.
-    #
+    # Рекомендуется применять ко всем внешним сервисам
     # Docs: https://doc.traefik.io/traefik/middlewares/http/headers/
-    #
-    # Headers:
-    #   - SSL Redirect: перенаправлять HTTP → HTTPS (отключено: false)
-    #   - HSTS: Strict Transport Security (защита от downgrade attacks)
-    #   - Frame Deny: запретить embedding в iframe (защита от clickjacking)
-    #   - Content Type Nosniff: запретить MIME-sniffing браузерами
-    #   - XSS Filter: включить XSS фильтр браузеров
-    #   - Referrer Policy: не отправлять Referer header (privacy)
-    # ---------------------------------------------------------------------------
     security-headers:
       headers:
         sslRedirect: false  # TODO: включить true когда будет HTTPS
-
-        # HSTS (HTTP Strict Transport Security)
-        stsSeconds: 31536000  # 365 дней
-        stsIncludeSubdomains: true  # Применять ко всем subdomain'ам
-        stsPreload: true  # Разрешить preload в HSTS списки браузеров
-        forceSTSHeader: true  # Принудительно добавлять header
-
-        # X-Frame-Options: запретить embedding в iframe
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
         frameDeny: true
-
-        # X-Content-Type-Options: запретить MIME-sniffing
         contentTypeNosniff: true
-
-        # X-XSS-Protection: включить XSS фильтр (устарел, но всё ещё полезен)
         browserXssFilter: true
-
-        # Referrer-Policy: не отправлять Referer (privacy)
         referrerPolicy: "no-referrer"
-
-        # CUSTOM_FRAME_OPTIONS: альтернатива frameDeny
         customFrameOptionsValue: "SAMEORIGIN"
-
-# =============================================================================
-# Basic Auth Middleware (для защиты Dashboard)
-# =============================================================================
-# Чтобы включить Basic Auth для Dashboard:
-#
-# 1. Сгенерируйте хеш пароля:
-#    echo $(htpasswd -nb admin securepassword) | sed -e s/\\$/\\$\\$/g
-#    Результат: admin:$apr1$hash...
-#
-# 2. Раскомментируйте секцию middlewares ниже и добавьте хеш
-#
-# 3. Добавьте middleware в router:
-#    middlewares:
-#      - "dashboard-to-root"
-#      - "traefik-auth"  # <-- добавить
-#
-# 4. Перезапустите Traefik:
-#    docker compose -f compose/compose.yml restart traefik
-#
-# Docs: https://doc.traefik.io/traefik/middlewares/http/basicauth/
-# =============================================================================
-#
-# http:
-#   middlewares:
-#     traefik-auth:
-#       basicAuth:
-#         users:
-#           - "admin:$apr1$hash..."  # Замените на ваш хеш из htpasswd
-#
-# =============================================================================
-# Примеры добавления новых middlewares
-# =============================================================================
-#
-# Rate Limiting Middleware (защита от DDoS):
-# -----------------------------------------------------------------------------
-# rate-limit:
-#   rateLimit:
-#     average: 100  # среднее количество запросов
-#     period: 1m    # за период (1 минута)
-#     burst: 50     # пиковое количество запросов
-#
-# Использование:
-#   labels:
-#     - "traefik.http.routers.myservice.middlewares=rate-limit@file"
-#
-# -----------------------------------------------------------------------------
-# IP Whitelist Middleware (только доверенные IP):
-# -----------------------------------------------------------------------------
-# ip-whitelist:
-#   ipWhiteList:
-#     sourceRange:
-#       - "192.168.1.0/24"  # Ваша локальная сеть
-#       - "127.0.0.1/32"    # Localhost
-#
-# Использование:
-#   labels:
-#     - "traefik.http.routers.myservice.middlewares=ip-whitelist@file"
-#
-# -----------------------------------------------------------------------------
-# Strip Prefix Middleware (убрать префикс пути):
-# -----------------------------------------------------------------------------
-# strip-api-prefix:
-#   stripPrefix:
-#     prefixes:
-#       - "/api"
-#       - "/v1"
-#
-# Использование:
-#   labels:
-#     - "traefik.http.routers.myservice.middlewares=strip-api-prefix@file"
-#
-# =============================================================================
-# Примеры добавления новых routers
-# =============================================================================
-#
-# Router с HTTPS и Let's Encrypt:
-# -----------------------------------------------------------------------------
-# myservice-https:
-#   rule: "Host(`myservice.example.com`)"
-#   entryPoints:
-#     - "websecure"
-#   tls:
-#     certResolver: letsencrypt  # Автоматически получить сертификат
-#   service: myservice
-#
-# Router с HTTP → HTTPS redirect:
-# -----------------------------------------------------------------------------
-# myservice-http:
-#   rule: "Host(`myservice.example.com`)"
-#   entryPoints:
-#     - "web"
-#   middlewares:
-#     - "redirect-to-https"  # См. middleware выше
-#   service: myservice
-#
-# =============================================================================
-# Полезные ссылки
-# =============================================================================
-# - Middlewares Overview: https://doc.traefik.io/traefik/middlewares/overview/
-# - Routers Overview: https://doc.traefik.io/traefik/routers/overview/
-# - Traefik Dynamic Conf: https://doc.traefik.io/traefik/getting-started/configuration-overview/
